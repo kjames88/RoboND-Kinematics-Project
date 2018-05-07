@@ -23,36 +23,44 @@ T0_1 = Matrix([[cos(theta1), -sin(theta1), 0, a0],
                [sin(theta1) * sin(alpha0), cos(theta1) * sin(alpha0), cos(alpha0), cos(alpha0) * d1],
                [0, 0, 0, 1]])
 T0_1 = T0_1.subs(s)
+R0_1 = T0_1[0:3,0:3]
 
 T1_2 = Matrix([[cos(theta2), -sin(theta2), 0, a1],
                [sin(theta2) * cos(alpha1), cos(theta2) * cos(alpha1), -sin(alpha1), -sin(alpha1) * d2],
                [sin(theta2) * sin(alpha1), cos(theta2) * sin(alpha1), cos(alpha1), cos(alpha1) * d2],
                [0, 0, 0, 1]])
 T1_2 = T1_2.subs(s)
+R1_2 = T1_2[0:3,0:3]
 
 T2_3 = Matrix([[cos(theta3), -sin(theta3), 0, a2],
                [sin(theta3) * cos(alpha2), cos(theta3) * cos(alpha2), -sin(alpha2), -sin(alpha2) * d3],
                [sin(theta3) * sin(alpha2), cos(theta3) * sin(alpha2), cos(alpha2), cos(alpha2) * d3],
                [0, 0, 0, 1]])
 T2_3 = T2_3.subs(s)
+R2_3 = T2_3[0:3,0:3]
 
 T3_4 = Matrix([[cos(theta4), -sin(theta4), 0, a3],
                [sin(theta4) * cos(alpha3), cos(theta4) * cos(alpha3), -sin(alpha3), -sin(alpha3) * d4],
                [sin(theta4) * sin(alpha3), cos(theta4) * sin(alpha3), cos(alpha3), cos(alpha3) * d4],
                [0, 0, 0, 1]])
 T3_4 = T3_4.subs(s)
+R3_4 = T3_4[0:3,0:3]
 
 T4_5 = Matrix([[cos(theta5), -sin(theta5), 0, a4],
                [sin(theta5) * cos(alpha4), cos(theta5) * cos(alpha4), -sin(alpha4), -sin(alpha4) * d5],
                [sin(theta5) * sin(alpha4), cos(theta5) * sin(alpha4), cos(alpha4), cos(alpha4) * d5],
                [0, 0, 0, 1]])
 T4_5 = T4_5.subs(s)
+R4_5 = T4_5[0:3,0:3]
 
 T5_6 = Matrix([[cos(theta6), -sin(theta6), 0, a5],
                [sin(theta6) * cos(alpha5), cos(theta6) * cos(alpha5), -sin(alpha5), -sin(alpha5) * d6],
                [sin(theta6) * sin(alpha5), cos(theta6) * sin(alpha5), cos(alpha5), cos(alpha5) * d6],
                [0, 0, 0, 1]])
 T5_6 = T5_6.subs(s)
+R5_6 = T5_6[0:3,0:3]
+
+R0_6 = R0_1*R1_2*R2_3*R3_4*R4_5*R5_6
 
 T6_G = Matrix([[cos(theta7), -sin(theta7), 0, a6],
                [sin(theta7) * cos(alpha6), cos(theta7) * cos(alpha6), -sin(alpha6), -sin(alpha6) * d7],
@@ -206,3 +214,15 @@ wy = py - ((d6 + l) * ny)
 wz = pz - ((d6 + l) * nz)
 
 print('computed wx = {} wy = {} wz = {}'.format(wx,wy,wz))
+
+print('R0_6 = {}'.format(R0_6.evalf(subs=ts)))
+
+R0_3 = R0_1*R1_2*R2_3
+R0_3 = R0_3.evalf(subs=ts)
+print('R0_3 = {}'.format(R0_3))
+
+R3_6 = R0_3.inv('LU')*Rrpy
+print('R3_6 = {}'.format(R3_6.evalf(subs=ts)))
+
+
+
