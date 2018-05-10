@@ -221,8 +221,10 @@ R0_3 = R0_1*R1_2*R2_3
 R0_3 = R0_3.evalf(subs=ts)
 print('R0_3 = {}'.format(R0_3))
 
+R3_6 = R3_4*R4_5*R5_6
+print('R3_6 symbolic = {}'.format(R3_6))
 R3_6 = R0_3.inv('LU')*Rrpy
-print('R3_6 = {}'.format(R3_6.evalf(subs=ts)))
+print('R3_6 computed = {}'.format(R3_6.evalf(subs=ts)))
 
 
 
