@@ -17,6 +17,7 @@ from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
 from geometry_msgs.msg import Pose
 from mpmath import *
 from sympy import *
+import numpy as np
 
 
 def handle_calculate_IK(req):
@@ -25,6 +26,7 @@ def handle_calculate_IK(req):
         print "No valid poses received"
         return -1
     else:
+        print "Run IK on poses!"
 
         ### Your FK code here
         # Create symbols
@@ -116,7 +118,7 @@ def handle_calculate_IK(req):
         R5_6 = T5_6[0:3,0:3]
 
         l = 0.303
-        d6 = 0
+        d6 = 0.0
 
         # Initialize service response
         joint_trajectory_list = []
@@ -158,46 +160,70 @@ def handle_calculate_IK(req):
                          [0, 1, 0],
                          [-sin(-pi/2), 0, cos(-pi/2)]])
             R_corr = (Rz * Ry)
-            Rrpy = Rz_yaw * Ry_pitch * Rx_roll * R_corr
+            Rrpy = (Rz_yaw * Ry_pitch * Rx_roll * R_corr).evalf()
 
             ### Your IK code here
 
-            nx = Rrpy[0,2]
-            ny = Rrpy[1,2]
-            nz = Rrpy[2,2]
+            nx = float(Rrpy[0,2])
+            ny = float(Rrpy[1,2])
+            nz = float(Rrpy[2,2])
             wx = px - ((d6 + l) * nx)
             wy = py - ((d6 + l) * ny)
             wz = pz - ((d6 + l) * nz)
 
-            theta1 = atan2(wy,wx)
-            j2x = s[a1] * cos(theta1).evalf()
-            j2y = s[a1] * sin(theta1).evalf()
+            print('nx {} ny {} nz {} wx {} wy {} wz {}'.format(nx,ny,nz,wx,wy,wz))
+            theta1v = np.arctan2(wy,wx) #numeric
+
+            print('theta1v = {}'.format(theta1v))
+
+            j2x = s[a1] * np.cos(theta1v) #numeric
+            j2y = s[a1] * np.sin(theta1v) #numeric
             j2z = s[d1]
 
-            dx = wx - j2x
-            dy = wy - j2y
-            dz = wz - j2z
+            dx = wx - j2x #numeric
+            dy = wy - j2y #numeric
+            dz = wz - j2z #numeric
 
 	    # Calculate joint angles using Geometric IK method
 	    #
 	    #
             ###
-            A = sqrt(s[a3]**2 + s[d4]**2)
-            B = sqrt(dx**2 + dy**2 + dz**2)
+            A = np.sqrt(s[a3]**2 + s[d4]**2)
+            B = np.sqrt(dx**2 + dy**2 + dz**2)
             C = s[a2]
             v = (A**2 + C**2 - B**2) / (2.0*A*C)
-            b = acos(v)
-            theta3 = (pi/2 - b)
+            b = np.arccos(v)
+            theta3v = (np.pi/2.0 - b)
+
+            print('theta3v = {}'.format(theta3v))
+
+            v = (B**2 + C**2 - A**2) / (2.0*B*C)
+            a = np.arccos(v)
+
+            wc_a = np.arctan2(dy,dz)
+            dxy = np.sqrt(dx**2 + dy**2)
+            angle = np.arctan2(dz,dxy)
+            theta2v = np.pi/2.0 - angle - a
+            print('angle to wc {} theta2v = {}'.format(angle,theta2v))
 
             R0_3 = R0_1*R1_2*R2_3
-            R0_3 = R0_3.evalf()
-            R3_6 = R3_4*R4_5*R5_6
+            R0_3 = R0_3.evalf(subs={theta1:theta1v,theta2:theta2v,theta3:theta3v})    # still a sympy thing
+            R3_6_sym = R3_4*R4_5*R5_6
             R3_6 = R0_3.inv('LU')*Rrpy
+            R3_6 = R3_6.evalf(subs={theta1:theta1v,theta2:theta2v,theta3:theta3v})   # still a sympy thing
+            print('R3_6_sym = {}'.format(R3_6_sym))
+            print('R3_6 eval = {}'.format(R3_6))
 
-
+            sin_theta5_cos_theta6 = float(R3_6[1,0].evalf())
+            cos_theta5 = float(R3_6[1,2].evalf())
+            sin_theta4_sin_theta5 = float(R3_6[2,2].evalf())
+            theta5v = np.arccos(cos_theta5)
+            sin_theta5v = np.sin(theta5v)
+            theta4v = np.arcsin(sin_theta4_sin_theta5 / sin_theta5v)
+            theta6v = np.arccos(sin_theta5_cos_theta6 / sin_theta5v)
             # Populate response for the IK request
             # In the next line replace theta1,theta2...,theta6 by your joint angle variables
-	    joint_trajectory_point.positions = [theta1, theta2, theta3, theta4, theta5, theta6]
+	    joint_trajectory_point.positions = [theta1v, theta2v, theta3v, theta4v, theta5v, theta6v]
 	    joint_trajectory_list.append(joint_trajectory_point)
 
         rospy.loginfo("length of Joint Trajectory List: %s" % len(joint_trajectory_list))
