@@ -19,6 +19,13 @@ from mpmath import *
 from sympy import *
 import numpy as np
 
+# some values out of matrix inverse are very slightly out of range for sin/cos (e.g. 1.00001172958) leading to nan
+def limit(sin_cos_val):
+    if sin_cos_val < -1.0:
+        return -1.0
+    elif sin_cos_val > 1.0:
+        return 1.0
+    return sin_cos_val
 
 def handle_calculate_IK(req):
     rospy.loginfo("Received %s eef-poses from the plan" % len(req.poses))
@@ -116,9 +123,13 @@ def handle_calculate_IK(req):
         R3_4 = T3_4[0:3,0:3]
         R4_5 = T4_5[0:3,0:3]
         R5_6 = T5_6[0:3,0:3]
+        R0_3 = R0_1*R1_2*R2_3
+        R3_6_sym = R3_4*R4_5*R5_6
 
-        l = 0.303
-        d6 = 0.0
+        print('R3_6_sym = {}'.format(R3_6_sym))
+
+        lv = 0.303
+        d6v = 0.0
 
         # Initialize service response
         joint_trajectory_list = []
@@ -137,28 +148,28 @@ def handle_calculate_IK(req):
                 [req.poses[x].orientation.x, req.poses[x].orientation.y,
                     req.poses[x].orientation.z, req.poses[x].orientation.w])
 
-            Rx_roll = Matrix([[1,0,0],
-                              [0,cos(roll),-sin(roll)],
-                              [0,sin(roll),cos(roll)]])
+            Rx_roll = Matrix([[1.,0.,0.],
+                              [0.,np.cos(roll),-np.sin(roll)],
+                              [0.,np.sin(roll),np.cos(roll)]])
 
-            Ry_pitch = Matrix([[cos(pitch),0,sin(pitch)],
-                               [0,1,0],
-                               [-sin(pitch),0,cos(pitch)]])
+            Ry_pitch = Matrix([[np.cos(pitch),0.,np.sin(pitch)],
+                               [0.,1.,0.],
+                               [-np.sin(pitch),0.,np.cos(pitch)]])
 
-            Rz_yaw = Matrix([[cos(yaw),-sin(yaw),0],
-                             [sin(yaw),cos(yaw),0],
-                             [0,0,1]])
+            Rz_yaw = Matrix([[np.cos(yaw),-np.sin(yaw),0.],
+                             [np.sin(yaw),np.cos(yaw),0.],
+                             [0.,0.,1.]])
 
 	    # Compensate for rotation discrepancy between DH parameters and Gazebo
 	    #
 	    #
-            Rz = Matrix([[cos(pi), -sin(pi), 0],
-                         [sin(pi), cos(pi), 0],
-                         [0, 0, 1]])
+            Rz = Matrix([[np.cos(np.pi), -np.sin(np.pi), 0.],
+                         [np.sin(np.pi), np.cos(np.pi), 0.],
+                         [0., 0., 1.]])
 
-            Ry = Matrix([[cos(-pi/2), 0, sin(-pi/2)],
-                         [0, 1, 0],
-                         [-sin(-pi/2), 0, cos(-pi/2)]])
+            Ry = Matrix([[np.cos(-np.pi/2.), 0., np.sin(-np.pi/2.)],
+                         [0., 1., 0.],
+                         [-np.sin(-np.pi/2.), 0., np.cos(-np.pi/2.)]])
             R_corr = (Rz * Ry)
             Rrpy = (Rz_yaw * Ry_pitch * Rx_roll * R_corr).evalf()
 
@@ -167,9 +178,9 @@ def handle_calculate_IK(req):
             nx = float(Rrpy[0,2])
             ny = float(Rrpy[1,2])
             nz = float(Rrpy[2,2])
-            wx = px - ((d6 + l) * nx)
-            wy = py - ((d6 + l) * ny)
-            wz = pz - ((d6 + l) * nz)
+            wx = px - ((d6v + lv) * nx)
+            wy = py - ((d6v + lv) * ny)
+            wz = pz - ((d6v + lv) * nz)
 
             print('nx {} ny {} nz {} wx {} wy {} wz {}'.format(nx,ny,nz,wx,wy,wz))
             theta1v = np.arctan2(wy,wx) #numeric
@@ -193,34 +204,42 @@ def handle_calculate_IK(req):
             C = s[a2]
             v = (A**2 + C**2 - B**2) / (2.0*A*C)
             b = np.arccos(v)
-            theta3v = (np.pi/2.0 - b)
+            theta3v = (np.pi/2. - b)
 
             print('theta3v = {}'.format(theta3v))
 
             v = (B**2 + C**2 - A**2) / (2.0*B*C)
             a = np.arccos(v)
 
-            wc_a = np.arctan2(dy,dz)
             dxy = np.sqrt(dx**2 + dy**2)
             angle = np.arctan2(dz,dxy)
-            theta2v = np.pi/2.0 - angle - a
+            theta2v = np.pi/2. - angle - a
             print('angle to wc {} theta2v = {}'.format(angle,theta2v))
 
-            R0_3 = R0_1*R1_2*R2_3
             R0_3 = R0_3.evalf(subs={theta1:theta1v,theta2:theta2v,theta3:theta3v})    # still a sympy thing
-            R3_6_sym = R3_4*R4_5*R5_6
             R3_6 = R0_3.inv('LU')*Rrpy
             R3_6 = R3_6.evalf(subs={theta1:theta1v,theta2:theta2v,theta3:theta3v})   # still a sympy thing
-            print('R3_6_sym = {}'.format(R3_6_sym))
-            print('R3_6 eval = {}'.format(R3_6))
+            #print('R3_6_sym = {}'.format(R3_6_sym))
+            #print('R3_6 eval = {}'.format(R3_6))
 
             sin_theta5_cos_theta6 = float(R3_6[1,0].evalf())
-            cos_theta5 = float(R3_6[1,2].evalf())
+            cos_theta5 = limit(float(R3_6[1,2].evalf()))
+            print('cos_theta5 = {} R3_6 {}'.format(cos_theta5,R3_6))
             sin_theta4_sin_theta5 = float(R3_6[2,2].evalf())
             theta5v = np.arccos(cos_theta5)
             sin_theta5v = np.sin(theta5v)
-            theta4v = np.arcsin(sin_theta4_sin_theta5 / sin_theta5v)
-            theta6v = np.arccos(sin_theta5_cos_theta6 / sin_theta5v)
+            if abs(sin_theta5v) > 0.001:
+                v = limit(sin_theta4_sin_theta5 / sin_theta5v)
+                theta4v = np.arcsin(v)
+                v = limit(sin_theta5_cos_theta6 / sin_theta5v)
+                theta6v = np.arccos(v)
+            else:
+                print('sin theta 5 {} R3_6 vals {} {}'.format(sin_theta5v,sin_theta4_sin_theta5,sin_theta5_cos_theta6))
+                theta4v = np.pi/4.  # any
+                theta6v = np.pi/4.  # any
+
+            rospy.loginfo('theta1 {} theta2 {} theta3 {} theta4 {} theta5 {} theta6 {}'. \
+                    format(theta1v,theta2v,theta3v,theta4v,theta5v,theta6v))
             # Populate response for the IK request
             # In the next line replace theta1,theta2...,theta6 by your joint angle variables
 	    joint_trajectory_point.positions = [theta1v, theta2v, theta3v, theta4v, theta5v, theta6v]
