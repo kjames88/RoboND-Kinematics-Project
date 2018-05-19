@@ -148,30 +148,30 @@ def handle_calculate_IK(req):
                 [req.poses[x].orientation.x, req.poses[x].orientation.y,
                     req.poses[x].orientation.z, req.poses[x].orientation.w])
 
+
+            r,p,y = symbols('r p y')
             Rx_roll = Matrix([[1.,0.,0.],
-                              [0.,np.cos(roll),-np.sin(roll)],
-                              [0.,np.sin(roll),np.cos(roll)]])
+                              [0.,cos(r),-sin(r)],
+                              [0.,sin(r),cos(r)]])
 
-            Ry_pitch = Matrix([[np.cos(pitch),0.,np.sin(pitch)],
-                               [0.,1.,0.],
-                               [-np.sin(pitch),0.,np.cos(pitch)]])
+            Ry_pitch = Matrix([[cos(p),0.,sin(p)],
+                              [0.,1.,0.],
+                              [-sin(p),0.,cos(p)]])
 
-            Rz_yaw = Matrix([[np.cos(yaw),-np.sin(yaw),0.],
-                             [np.sin(yaw),np.cos(yaw),0.],
+            Rz_yaw = Matrix([[cos(y),-sin(y),0.],
+                             [sin(y),cos(y),0.],
                              [0.,0.,1.]])
 
-	    # Compensate for rotation discrepancy between DH parameters and Gazebo
-	    #
-	    #
-            Rz = Matrix([[np.cos(np.pi), -np.sin(np.pi), 0.],
-                         [np.sin(np.pi), np.cos(np.pi), 0.],
+            Rz = Matrix([[cos(pi), -sin(pi), 0.],
+                         [sin(pi), cos(pi), 0.],
                          [0., 0., 1.]])
-
-            Ry = Matrix([[np.cos(-np.pi/2.), 0., np.sin(-np.pi/2.)],
+            Ry = Matrix([[cos(-pi/2.), 0., sin(-pi/2.)],
                          [0., 1., 0.],
-                         [-np.sin(-np.pi/2.), 0., np.cos(-np.pi/2.)]])
-            R_corr = (Rz * Ry)
-            Rrpy = (Rz_yaw * Ry_pitch * Rx_roll * R_corr).evalf()
+                         [-sin(-pi/2.), 0., cos(-pi/2.)]])
+            R_corr = Rz*Ry
+            R_ee = Rz_yaw*Ry_pitch*Rx_roll
+            R_ee = R_ee*R_corr
+            Rrpy = R_ee.subs({'r':roll,'p':pitch,'y':yaw})
 
             ### Your IK code here
 
@@ -204,7 +204,7 @@ def handle_calculate_IK(req):
             C = s[a2]
             v = (A**2 + C**2 - B**2) / (2.0*A*C)
             b = np.arccos(v)
-            theta3v = (np.pi/2. - b)
+            theta3v = (np.pi/2. - b) - 0.036  # offset error from project walkthrough
 
             print('theta3v = {}'.format(theta3v))
 
@@ -217,26 +217,16 @@ def handle_calculate_IK(req):
             print('angle to wc {} theta2v = {}'.format(angle,theta2v))
 
             R0_3 = R0_3.evalf(subs={theta1:theta1v,theta2:theta2v,theta3:theta3v})    # still a sympy thing
-            R3_6 = R0_3.inv('LU')*Rrpy
-            R3_6 = R3_6.evalf(subs={theta1:theta1v,theta2:theta2v,theta3:theta3v})   # still a sympy thing
-            #print('R3_6_sym = {}'.format(R3_6_sym))
-            #print('R3_6 eval = {}'.format(R3_6))
+            #R3_6 = R0_3.inv('LU')*Rrpy
+            R3_6 = R0_3.inv()*Rrpy  # LU causes significant error
 
-            sin_theta5_cos_theta6 = float(R3_6[1,0].evalf())
-            cos_theta5 = limit(float(R3_6[1,2].evalf()))
-            print('cos_theta5 = {} R3_6 {}'.format(cos_theta5,R3_6))
-            sin_theta4_sin_theta5 = float(R3_6[2,2].evalf())
-            theta5v = np.arccos(cos_theta5)
-            sin_theta5v = np.sin(theta5v)
-            if abs(sin_theta5v) > 0.001:
-                v = limit(sin_theta4_sin_theta5 / sin_theta5v)
-                theta4v = np.arcsin(v)
-                v = limit(sin_theta5_cos_theta6 / sin_theta5v)
-                theta6v = np.arccos(v)
-            else:
-                print('sin theta 5 {} R3_6 vals {} {}'.format(sin_theta5v,sin_theta4_sin_theta5,sin_theta5_cos_theta6))
-                theta4v = np.pi/4.  # any
-                theta6v = np.pi/4.  # any
+            # per the project walkthrough, use the arctan2 method rather than arccos and arcsin
+            theta4s = atan2(R3_6[2,2],-R3_6[0,2])
+            theta5s = atan2(sqrt(R3_6[0,2]*R3_6[0,2] + R3_6[2,2]*R3_6[2,2]),R3_6[1,2])
+            theta6s = atan2(-R3_6[1,1],R3_6[1,0])
+            theta4v = float(theta4s.evalf())
+            theta5v = float(theta5s.evalf())
+            theta6v = float(theta6s.evalf())
 
             rospy.loginfo('theta1 {} theta2 {} theta3 {} theta4 {} theta5 {} theta6 {}'. \
                     format(theta1v,theta2v,theta3v,theta4v,theta5v,theta6v))
