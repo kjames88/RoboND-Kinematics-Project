@@ -23,7 +23,10 @@ test_cases = {1:[[[2.16135,-1.42635,1.55109],
                   [0.01735,-0.2179,0.9025,0.371016]],
                   [-1.1669,-0.17989,0.85137],
                   [-2.99,-0.12,0.94,4.06,1.29,-4.12]],
-              4:[],
+              4:[[[-0.21007,2.50001,1.60011],
+                  [0.000282,0.000481,-0.000145,0.999999]],
+                  [0.,0.,0.],
+                  [0.,0.,0.,0.,0.,0.]],
               5:[]}
 
 # some values out of matrix inverse are very slightly out of range for sin/cos (e.g. 1.00001172958) leading to nan
@@ -34,6 +37,12 @@ def limit(sin_cos_val):
         return 1.0
     return sin_cos_val
 
+def normalize(rad):
+    if rad > np.pi:
+        return rad - (2.*np.pi)
+    elif rad < -np.pi:
+        return rad + (2.*np.pi)
+    return rad
 
 def test_code(test_case):
     ## Set up code
@@ -210,6 +219,7 @@ def test_code(test_case):
     wz = pz - ((d6v + lv) * nz)
 
     theta1v = np.arctan2(wy,wx) #numeric
+    theta1v = normalize(theta1v)
 
     print('theta1v = {}'.format(theta1v))
 
@@ -222,11 +232,14 @@ def test_code(test_case):
     dz = wz - j2z #numeric
 
     A = np.sqrt(s[a3]**2 + s[d4]**2)
-    B = np.sqrt(dx**2 + dy**2 + dz**2)
+    #B = np.sqrt(dx**2 + dy**2 + dz**2)
+    B = np.sqrt((np.sqrt(wx**2 + wy**2) - s[a1])**2 + dz**2)
     C = s[a2]
     v = (A**2 + C**2 - B**2) / (2.0*A*C)
     b = np.arccos(v)
-    theta3v = (np.pi/2. - b)
+    a_sag = np.arctan2(s[a3], s[d4])
+    theta3v = (np.pi/2. - b) + a_sag
+    theta3v = normalize(theta3v)
 
     print('theta3v = {}'.format(theta3v))
 
@@ -236,11 +249,18 @@ def test_code(test_case):
     dxy = np.sqrt(dx**2 + dy**2)
     angle = np.arctan2(dz,dxy)
     theta2v = np.pi/2. - angle - a
+    theta2v = normalize(theta2v)
 
     R0_3 = T0_1[0:3,0:3]*T1_2[0:3,0:3]*T2_3[0:3,0:3]
     R0_3 = R0_3.evalf(subs={q1:theta1v,q2:theta2v,q3:theta3v})
     #R0_3 = R0_3_sym.evalf(subs={q1:theta1v,q2:theta2v,q3:theta3v})
-    #R3_6 = R0_3.inv("LU")*Rrpy
+    print('R0_3 = {}'.format(R0_3))
+    R0_3_inv = R0_3.inv('LU')
+    R0_3_2inv = R0_3_inv.inv('LU')
+    print('R0_3 2inv LU = {}'.format(R0_3_2inv))
+    R0_3_inv = R0_3.inv()
+    R0_3_2inv = R0_3_inv.inv()
+    print('R0_3 2inv = {}'.format(R0_3_2inv))
     R3_6 = R0_3.inv()*Rrpy  # LU causes significant error
     print('R3_6 = {}'.format(R3_6))
 
@@ -250,6 +270,9 @@ def test_code(test_case):
     theta4v = float(theta4s.evalf())
     theta5v = float(theta5s.evalf())
     theta6v = float(theta6s.evalf())
+    theta4v = normalize(theta4v)
+    theta5v = normalize(theta5v)
+    theta6v = normalize(theta6v)
     #theta4v = np.arctan2(float(R3_6[2,2]),-float(R3_6[0,2]))
     print('theta4v = {}'.format(theta4v))
     #theta5v = np.arctan2(np.sqrt(float(R3_6[0,2])**2 + float(R3_6[2,2])**2),float(R3_6[1,2]))
@@ -327,6 +350,6 @@ def test_code(test_case):
 
 if __name__ == "__main__":
     # Change test case number for different scenarios
-    test_case_number = 1
+    test_case_number = 4
 
     test_code(test_cases[test_case_number])

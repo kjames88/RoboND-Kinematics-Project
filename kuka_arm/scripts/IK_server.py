@@ -27,6 +27,13 @@ def limit(sin_cos_val):
         return 1.0
     return sin_cos_val
 
+def normalize(rad):
+    while rad > np.pi:
+        rad -= (2.*np.pi)
+    while rad < -np.pi:
+        rad += (2.*np.pi)
+    return rad
+
 def handle_calculate_IK(req):
     rospy.loginfo("Received %s eef-poses from the plan" % len(req.poses))
     if len(req.poses) < 1:
@@ -40,7 +47,7 @@ def handle_calculate_IK(req):
 	#
 	#
 
-        theta1,theta2,theta3,theta4,theta5,theta6,theta7 = symbols('theta1:8')
+        q1,q2,q3,q4,q5,q6,q7 = symbols('q1:8')
         d1,d2,d3,d4,d5,d6,d7 = symbols('d1:8')
         a0,a1,a2,a3,a4,a5,a6 = symbols('a0:7')
         alpha0,alpha1,alpha2,alpha3,alpha4,alpha5,alpha6 = symbols('alpha0:7')
@@ -52,58 +59,77 @@ def handle_calculate_IK(req):
         # DH parameters
         #   symbol dictionary
         s = {alpha0:     0, a0:      0, d1:  0.75,
-             alpha1: -pi/2, a1:   0.35, d2:     0, theta2: theta2-pi/2,
+             alpha1: -pi/2, a1:   0.35, d2:     0, q2: q2-pi/2,
              alpha2:     0, a2:   1.25, d3:     0,
              alpha3: -pi/2, a3: -0.054, d4:  1.50,
              alpha4:  pi/2, a4:      0, d5:     0,
              alpha5: -pi/2, a5:      0, d6:     0,
-             alpha6:     0, a6:      0, d7: 0.303, theta7: 0}
+             alpha6:     0, a6:      0, d7: 0.303, q7: 0}
 
 	# Define Modified DH Transformation matrix
 	#
 	#
 
-        T0_1 = Matrix([[cos(theta1), -sin(theta1), 0, a0],
-                       [sin(theta1) * cos(alpha0), cos(theta1) * cos(alpha0), -sin(alpha0), -sin(alpha0) * d1],
-                       [sin(theta1) * sin(alpha0), cos(theta1) * sin(alpha0), cos(alpha0), cos(alpha0) * d1],
+        T0_1 = Matrix([[cos(q1), -sin(q1), 0, a0],
+                       [sin(q1) * cos(alpha0), cos(q1) * cos(alpha0), -sin(alpha0), -sin(alpha0) * d1],
+                       [sin(q1) * sin(alpha0), cos(q1) * sin(alpha0), cos(alpha0), cos(alpha0) * d1],
                        [0, 0, 0, 1]])
         T0_1 = T0_1.subs(s)
 
-        T1_2 = Matrix([[cos(theta2), -sin(theta2), 0, a1],
-                       [sin(theta2) * cos(alpha1), cos(theta2) * cos(alpha1), -sin(alpha1), -sin(alpha1) * d2],
-                       [sin(theta2) * sin(alpha1), cos(theta2) * sin(alpha1), cos(alpha1), cos(alpha1) * d2],
+        T1_2 = Matrix([[cos(q2), -sin(q2), 0, a1],
+                       [sin(q2) * cos(alpha1), cos(q2) * cos(alpha1), -sin(alpha1), -sin(alpha1) * d2],
+                       [sin(q2) * sin(alpha1), cos(q2) * sin(alpha1), cos(alpha1), cos(alpha1) * d2],
                        [0, 0, 0, 1]])
         T1_2 = T1_2.subs(s)
 
-        T2_3 = Matrix([[cos(theta3), -sin(theta3), 0, a2],
-                       [sin(theta3) * cos(alpha2), cos(theta3) * cos(alpha2), -sin(alpha2), -sin(alpha2) * d3],
-                       [sin(theta3) * sin(alpha2), cos(theta3) * sin(alpha2), cos(alpha2), cos(alpha2) * d3],
+        T2_3 = Matrix([[cos(q3), -sin(q3), 0, a2],
+                       [sin(q3) * cos(alpha2), cos(q3) * cos(alpha2), -sin(alpha2), -sin(alpha2) * d3],
+                       [sin(q3) * sin(alpha2), cos(q3) * sin(alpha2), cos(alpha2), cos(alpha2) * d3],
                        [0, 0, 0, 1]])
         T2_3 = T2_3.subs(s)
 
-        T3_4 = Matrix([[cos(theta4), -sin(theta4), 0, a3],
-                       [sin(theta4) * cos(alpha3), cos(theta4) * cos(alpha3), -sin(alpha3), -sin(alpha3) * d4],
-                       [sin(theta4) * sin(alpha3), cos(theta4) * sin(alpha3), cos(alpha3), cos(alpha3) * d4],
+        T3_4 = Matrix([[cos(q4), -sin(q4), 0, a3],
+                       [sin(q4) * cos(alpha3), cos(q4) * cos(alpha3), -sin(alpha3), -sin(alpha3) * d4],
+                       [sin(q4) * sin(alpha3), cos(q4) * sin(alpha3), cos(alpha3), cos(alpha3) * d4],
                        [0, 0, 0, 1]])
         T3_4 = T3_4.subs(s)
 
-        T4_5 = Matrix([[cos(theta5), -sin(theta5), 0, a4],
-                       [sin(theta5) * cos(alpha4), cos(theta5) * cos(alpha4), -sin(alpha4), -sin(alpha4) * d5],
-                       [sin(theta5) * sin(alpha4), cos(theta5) * sin(alpha4), cos(alpha4), cos(alpha4) * d5],
+        T4_5 = Matrix([[cos(q5), -sin(q5), 0, a4],
+                       [sin(q5) * cos(alpha4), cos(q5) * cos(alpha4), -sin(alpha4), -sin(alpha4) * d5],
+                       [sin(q5) * sin(alpha4), cos(q5) * sin(alpha4), cos(alpha4), cos(alpha4) * d5],
                        [0, 0, 0, 1]])
         T4_5 = T4_5.subs(s)
 
-        T5_6 = Matrix([[cos(theta6), -sin(theta6), 0, a5],
-                       [sin(theta6) * cos(alpha5), cos(theta6) * cos(alpha5), -sin(alpha5), -sin(alpha5) * d6],
-                       [sin(theta6) * sin(alpha5), cos(theta6) * sin(alpha5), cos(alpha5), cos(alpha5) * d6],
+        T5_6 = Matrix([[cos(q6), -sin(q6), 0, a5],
+                       [sin(q6) * cos(alpha5), cos(q6) * cos(alpha5), -sin(alpha5), -sin(alpha5) * d6],
+                       [sin(q6) * sin(alpha5), cos(q6) * sin(alpha5), cos(alpha5), cos(alpha5) * d6],
                        [0, 0, 0, 1]])
         T5_6 = T5_6.subs(s)
 
-        T6_G = Matrix([[cos(theta7), -sin(theta7), 0, a6],
-                       [sin(theta7) * cos(alpha6), cos(theta7) * cos(alpha6), -sin(alpha6), -sin(alpha6) * d7],
-                       [sin(theta7) * sin(alpha6), cos(theta7) * sin(alpha6), cos(alpha6), cos(alpha6) * d7],
+        T6_G = Matrix([[cos(q7), -sin(q7), 0, a6],
+                       [sin(q7) * cos(alpha6), cos(q7) * cos(alpha6), -sin(alpha6), -sin(alpha6) * d7],
+                       [sin(q7) * sin(alpha6), cos(q7) * sin(alpha6), cos(alpha6), cos(alpha6) * d7],
                        [0, 0, 0, 1]])
         T6_G = T6_G.subs(s)
+        # rotate 180 degrees about Z and -90 degrees about Y
+        Rz = Matrix([[cos(pi), -sin(pi), 0, 0],
+                     [sin(pi), cos(pi), 0, 0],
+                     [0, 0, 1, 0],
+                     [0, 0, 0, 1]])
+
+        Ry = Matrix([[cos(-pi/2), 0, sin(-pi/2), 0],
+                     [0, 1, 0, 0],
+                     [-sin(-pi/2), 0, cos(-pi/2), 0],
+                     [0, 0, 0, 1]])
+        Rcorr = (Rz * Ry)
+        T0_2 = (T0_1 * T1_2)  # base to link 2
+        T0_3 = (T0_2 * T2_3)  # base to link 3
+        T0_4 = (T0_3 * T3_4)  # base to link 4
+        T0_5 = (T0_4 * T4_5)  # base to link 5
+        T0_6 = (T0_5 * T5_6)  # base to link 6
+        T0_G = (T0_6 * T6_G)  # base to gripper before urdf/dh adjustment
+
+        T_all = (T0_G * Rcorr)
 
 
 	# Create individual transformation matrices
@@ -126,7 +152,7 @@ def handle_calculate_IK(req):
         R0_3 = R0_1*R1_2*R2_3
         R3_6_sym = R3_4*R4_5*R5_6
 
-        print('R3_6_sym = {}'.format(R3_6_sym))
+        #print('R3_6_sym = {}'.format(R3_6_sym))
 
         lv = 0.303
         d6v = 0.0
@@ -143,6 +169,10 @@ def handle_calculate_IK(req):
             px = req.poses[x].position.x
             py = req.poses[x].position.y
             pz = req.poses[x].position.z
+
+            px_intent = px
+            py_intent = py
+            pz_intent = pz
 
             (roll, pitch, yaw) = tf.transformations.euler_from_quaternion(
                 [req.poses[x].orientation.x, req.poses[x].orientation.y,
@@ -182,10 +212,11 @@ def handle_calculate_IK(req):
             wy = py - ((d6v + lv) * ny)
             wz = pz - ((d6v + lv) * nz)
 
-            print('nx {} ny {} nz {} wx {} wy {} wz {}'.format(nx,ny,nz,wx,wy,wz))
+            #print('nx {} ny {} nz {} wx {} wy {} wz {}'.format(nx,ny,nz,wx,wy,wz))
             theta1v = np.arctan2(wy,wx) #numeric
+            theta1v = normalize(theta1v)
 
-            print('theta1v = {}'.format(theta1v))
+            #print('theta1v = {}'.format(theta1v))
 
             j2x = s[a1] * np.cos(theta1v) #numeric
             j2y = s[a1] * np.sin(theta1v) #numeric
@@ -195,18 +226,25 @@ def handle_calculate_IK(req):
             dy = wy - j2y #numeric
             dz = wz - j2z #numeric
 
+            # Compute x/y plane component by subtracting a1
+            xy_mag = np.sqrt(wx**2 + wy**2) - s[a1]
+
 	    # Calculate joint angles using Geometric IK method
 	    #
 	    #
             ###
             A = np.sqrt(s[a3]**2 + s[d4]**2)
-            B = np.sqrt(dx**2 + dy**2 + dz**2)
+            B = np.sqrt((np.sqrt(wx**2 + wy**2) - s[a1])**2 + dz**2)
+            #B = np.sqrt(pow(xy_mag,2) + pow(wz-s[d1],2))
             C = s[a2]
             v = (A**2 + C**2 - B**2) / (2.0*A*C)
             b = np.arccos(v)
-            theta3v = (np.pi/2. - b) - 0.036  # offset error from project walkthrough
+            # angle adjust component due to a3 (sag in link 4 from project walkthrough)
+            a_sag = np.arctan2(s[a3], s[d4])
+            theta3v = (np.pi/2. - b) + a_sag
+            theta3v = normalize(theta3v)
 
-            print('theta3v = {}'.format(theta3v))
+            #print('theta3v = {}'.format(theta3v))
 
             v = (B**2 + C**2 - A**2) / (2.0*B*C)
             a = np.arccos(v)
@@ -214,9 +252,11 @@ def handle_calculate_IK(req):
             dxy = np.sqrt(dx**2 + dy**2)
             angle = np.arctan2(dz,dxy)
             theta2v = np.pi/2. - angle - a
-            print('angle to wc {} theta2v = {}'.format(angle,theta2v))
+            theta2v = normalize(theta2v)
+            #print('angle to wc {} theta2v = {}'.format(angle,theta2v))
 
-            R0_3 = R0_3.evalf(subs={theta1:theta1v,theta2:theta2v,theta3:theta3v})    # still a sympy thing
+            R0_3 = T0_1[0:3,0:3]*T1_2[0:3,0:3]*T2_3[0:3,0:3]
+            R0_3 = R0_3.evalf(subs={q1:theta1v,q2:theta2v,q3:theta3v})
             #R3_6 = R0_3.inv('LU')*Rrpy
             R3_6 = R0_3.inv()*Rrpy  # LU causes significant error
 
@@ -227,9 +267,23 @@ def handle_calculate_IK(req):
             theta4v = float(theta4s.evalf())
             theta5v = float(theta5s.evalf())
             theta6v = float(theta6s.evalf())
+            theta4v = normalize(theta4v)
+            theta5v = normalize(theta5v)
+            theta6v = normalize(theta6v)
 
             rospy.loginfo('theta1 {} theta2 {} theta3 {} theta4 {} theta5 {} theta6 {}'. \
                     format(theta1v,theta2v,theta3v,theta4v,theta5v,theta6v))
+
+            ts = {q1: theta1v, q2: theta2v, q3: theta3v, q4: theta4v, q5: theta5v, q6: theta6v, q7: 0.}
+            px = T_all[0,3].evalf(subs=ts)
+            py = T_all[1,3].evalf(subs=ts)
+            pz = T_all[2,3].evalf(subs=ts)
+
+            rospy.loginfo('intent {} {} {} FK {} {} {}'.format(px_intent,py_intent,pz_intent,px,py,pz))
+            rospy.loginfo('intent quaternion {} {} {} {}'.format(req.poses[x].orientation.x, req.poses[x].orientation.y, \
+                          req.poses[x].orientation.z, req.poses[x].orientation.w))
+            rospy.loginfo('IK/FK disparity {} {} {}'.format(abs(px-px_intent),abs(py-py_intent),abs(pz-pz_intent)))
+
             # Populate response for the IK request
             # In the next line replace theta1,theta2...,theta6 by your joint angle variables
 	    joint_trajectory_point.positions = [theta1v, theta2v, theta3v, theta4v, theta5v, theta6v]
