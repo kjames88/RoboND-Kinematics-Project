@@ -1,101 +1,120 @@
-[![Udacity - Robotics NanoDegree Program](https://s3-us-west-1.amazonaws.com/udacity-robotics/Extra+Images/RoboND_flag.png)](https://www.udacity.com/robotics)
-# Robotic arm - Pick & Place project
+# Kinematics Pick and Place Project
 
-Make sure you are using robo-nd VM or have Ubuntu+ROS installed locally.
+## Kinematic Analysis
 
-### One time Gazebo setup step:
-Check the version of gazebo installed on your system using a terminal:
-```sh
-$ gazebo --version
+### DH Table
+
+DH parameters are extracted from the arm's xacro file, with reference to its layout.  *d1* is composed of 0.33 z offset from base_link to link_1, plus 0.42 z offset from link_1 to link_2.  *a1* is the x offset from link_1 to link_2.  *a2* is the z offset from link_2 to link_3.  *a3* is the z offset from link_3 to link_4.  *d4* is the x offset from link_3 to link_4 plus the x offset from link_4 to link_5.  *d7* requires looking at two sections and is the sum of the x offset from link_5 to link_6 (0.193) and the x offset from link_6 to gripper_link (0.11) for the gripper_joint with type two_finger.
+
+The angles are generally inferred from the arm structure.  *Alpha1* is the angle (-90 deg) between the joint_1 axis (z) and joint_2 axis (y).  Joint_2 and joint_3 axes are parallel so *alpha_2* is 0.  As pointed out in the lesson, theta2 is offset -90 degrees due to the offset between X1 and X2 (relative to the base frame, X2 is in the positive z direction whereas X1 is in the positive x direction.)  *Alpha3* is the angle (-90 deg) from joint_3 axis (y) to joint_4 axis (x).  *Alpha4* is the angle (90 deg) from joint_4 axis (x) to joint_5 axis (y).  *Alpha5* is the angle (-90 deg) from joint_5 axis (y) to joint_6 axis (x).
+
+| Links | alpha(i-1) | a(i-1) | d(i) | theta(i) |
+|:---|:---|:---|:---|:---|
+| 0->1    | 0 | 0 | 0.75 |   |
+| 1->2    | -pi/2 | 0.35 | 0 | q2-pi/2 |
+| 2->3 | 0 | 1.25 | 0 |   |
+| 3->4 | -pi/2 | -0.054 | 1.50 |   |
+| 4->5 | pi/2 | 0 | 0 |   |
+| 5->6 | -pi/2 | 0 | 0 |   |
+| 6->EE | 0 |0 | 0.303 | 0 |
+
+
+### Transforms
+
+DH transforms below are in sympy symbolic format with a substitution of the above table after each matrix is defined.  Joint rotations thetaK are shown as qK.
+
 ```
-To run projects from this repository you need version 7.7.0+
-If your gazebo version is not 7.7.0+, perform the update as follows:
-```sh
-$ sudo sh -c 'echo "deb http://packages.osrfoundation.org/gazebo/ubuntu-stable `lsb_release -cs` main" > /etc/apt/sources.list.d/gazebo-stable.list'
-$ wget http://packages.osrfoundation.org/gazebo.key -O - | sudo apt-key add -
-$ sudo apt-get update
-$ sudo apt-get install gazebo7
-```
+T0_1 = Matrix([[cos(q1), -sin(q1), 0, a0],
+               [sin(q1) * cos(alpha0), cos(q1) * cos(alpha0), -sin(alpha0), -sin(alpha0) * d1],
+               [sin(q1) * sin(alpha0), cos(q1) * sin(alpha0), cos(alpha0), cos(alpha0) * d1],
+               [0, 0, 0, 1]])
+T0_1 = T0_1.subs(s)
 
-Once again check if the correct version was installed:
-```sh
-$ gazebo --version
-```
-### For the rest of this setup, catkin_ws is the name of active ROS Workspace, if your workspace name is different, change the commands accordingly
+T1_2 = Matrix([[cos(q2), -sin(q2), 0, a1],
+               [sin(q2) * cos(alpha1), cos(q2) * cos(alpha1), -sin(alpha1), -sin(alpha1) * d2],
+               [sin(q2) * sin(alpha1), cos(q2) * sin(alpha1), cos(alpha1), cos(alpha1) * d2],
+               [0, 0, 0, 1]])
+T1_2 = T1_2.subs(s)
 
-If you do not have an active ROS workspace, you can create one by:
-```sh
-$ mkdir -p ~/catkin_ws/src
-$ cd ~/catkin_ws/
-$ catkin_make
-```
+T2_3 = Matrix([[cos(q3), -sin(q3), 0, a2],
+               [sin(q3) * cos(alpha2), cos(q3) * cos(alpha2), -sin(alpha2), -sin(alpha2) * d3],
+               [sin(q3) * sin(alpha2), cos(q3) * sin(alpha2), cos(alpha2), cos(alpha2) * d3],
+               [0, 0, 0, 1]])
+T2_3 = T2_3.subs(s)
 
-Now that you have a workspace, clone or download this repo into the **src** directory of your workspace:
-```sh
-$ cd ~/catkin_ws/src
-$ git clone https://github.com/udacity/RoboND-Kinematics-Project.git
-```
+T3_4 = Matrix([[cos(q4), -sin(q4), 0, a3],
+               [sin(q4) * cos(alpha3), cos(q4) * cos(alpha3), -sin(alpha3), -sin(alpha3) * d4],
+               [sin(q4) * sin(alpha3), cos(q4) * sin(alpha3), cos(alpha3), cos(alpha3) * d4],
+               [0, 0, 0, 1]])
+T3_4 = T3_4.subs(s)
 
-Now from a terminal window:
+T4_5 = Matrix([[cos(q5), -sin(q5), 0, a4],
+               [sin(q5) * cos(alpha4), cos(q5) * cos(alpha4), -sin(alpha4), -sin(alpha4) * d5],
+               [sin(q5) * sin(alpha4), cos(q5) * sin(alpha4), cos(alpha4), cos(alpha4) * d5],
+               [0, 0, 0, 1]])
+T4_5 = T4_5.subs(s)
 
-```sh
-$ cd ~/catkin_ws
-$ rosdep install --from-paths src --ignore-src --rosdistro=kinetic -y
-$ cd ~/catkin_ws/src/RoboND-Kinematics-Project/kuka_arm/scripts
-$ sudo chmod +x target_spawn.py
-$ sudo chmod +x IK_server.py
-$ sudo chmod +x safe_spawner.sh
-```
-Build the project:
-```sh
-$ cd ~/catkin_ws
-$ catkin_make
-```
+T5_6 = Matrix([[cos(q6), -sin(q6), 0, a5],
+               [sin(q6) * cos(alpha5), cos(q6) * cos(alpha5), -sin(alpha5), -sin(alpha5) * d6],
+               [sin(q6) * sin(alpha5), cos(q6) * sin(alpha5), cos(alpha5), cos(alpha5) * d6],
+               [0, 0, 0, 1]])
+T5_6 = T5_6.subs(s)
 
-Add following to your .bashrc file
-```
-export GAZEBO_MODEL_PATH=~/catkin_ws/src/RoboND-Kinematics-Project/kuka_arm/models
-
-source ~/catkin_ws/devel/setup.bash
-```
-
-For demo mode make sure the **demo** flag is set to _"true"_ in `inverse_kinematics.launch` file under /RoboND-Kinematics-Project/kuka_arm/launch
-
-In addition, you can also control the spawn location of the target object in the shelf. To do this, modify the **spawn_location** argument in `target_description.launch` file under /RoboND-Kinematics-Project/kuka_arm/launch. 0-9 are valid values for spawn_location with 0 being random mode.
-
-You can launch the project by
-```sh
-$ cd ~/catkin_ws/src/RoboND-Kinematics-Project/kuka_arm/scripts
-$ ./safe_spawner.sh
+T6_G = Matrix([[cos(q7), -sin(q7), 0, a6],
+               [sin(q7) * cos(alpha6), cos(q7) * cos(alpha6), -sin(alpha6), -sin(alpha6) * d7],
+               [sin(q7) * sin(alpha6), cos(q7) * sin(alpha6), cos(alpha6), cos(alpha6) * d7],
+               [0, 0, 0, 1]])
+T6_G = T6_G.subs(s)
 ```
 
-If you are running in demo mode, this is all you need. To run your own Inverse Kinematics code change the **demo** flag described above to _"false"_ and run your code (once the project has successfully loaded) by:
-```sh
-$ cd ~/catkin_ws/src/RoboND-Kinematics-Project/kuka_arm/scripts
-$ rosrun kuka_arm IK_server.py
+The following is a transform matrix from the base link to the gripper using orientation (roll, pitch, yaw) and position (p_x,p_y,p_z) of the gripper.  As for the lesson, the gripper orientation is corrected by rotating about z 180 degrees and about y -90 degrees.
+
 ```
-Once Gazebo and rviz are up and running, make sure you see following in the gazebo world:
+Matrix([[1.0*sin(pitch)*cos(roll)*cos(yaw) + 1.0*sin(roll)*sin(yaw), -1.0*sin(pitch)*sin(roll)*cos(yaw) + 1.0*sin(yaw)*cos(roll), 1.0*cos(pitch)*cos(yaw), 1.0*p_x], [1.0*sin(pitch)*sin(yaw)*cos(roll) - 1.0*sin(roll)*cos(yaw), -1.0*sin(pitch)*sin(roll)*sin(yaw) - 1.0*cos(roll)*cos(yaw), 1.0*sin(yaw)*cos(pitch), 1.0*p_y], [1.0*cos(pitch)*cos(roll), -1.0*sin(roll)*cos(pitch), -1.0*sin(pitch), 1.0*p_z], [0, 0, 0, 1.00000000000000]])
+```
 
-	- Robot
-	
-	- Shelf
-	
-	- Blue cylindrical target in one of the shelves
-	
-	- Dropbox right next to the robot
-	
+To generate this matrix I used the following sympy code:
 
-If any of these items are missing, report as an issue.
+```
+# rotate 180 degrees about Z and -90 degrees about Y
+Rz = Matrix([[cos(pi), -sin(pi), 0, 0],
+             [sin(pi), cos(pi), 0, 0],
+             [0, 0, 1, 0],
+             [0, 0, 0, 1]])
 
-Once all these items are confirmed, open rviz window, hit Next button.
+Ry = Matrix([[cos(-pi/2), 0, sin(-pi/2), 0],
+             [0, 1, 0, 0],
+             [-sin(-pi/2), 0, cos(-pi/2), 0],
+             [0, 0, 0, 1]])
+Rcorr = (Rz * Ry)
 
-To view the complete demo keep hitting Next after previous action is completed successfully. 
+#Homogeneous RPY and Position transform
+p_x,p_y,p_z = symbols('p_x p_y p_z')
+roll,pitch,yaw = symbols('roll pitch yaw')
 
-Since debugging is enabled, you should be able to see diagnostic output on various terminals that have popped up.
+Rx = Matrix([[1.,0.,0.,0.],
+            [0.,cos(roll),-sin(roll),0.],
+            [0.,sin(roll),cos(roll),0.],
+            [0.,0.,0.,1.]])
+Ry = Matrix([[cos(pitch),0.,sin(pitch),0.],
+            [0.,1.,0.,0.],
+            [-sin(pitch),0.,cos(pitch),0.],
+            [0.,0.,0.,1.]])
+Rz = Matrix([[cos(yaw),-sin(yaw),0.,0.],
+            [sin(yaw),cos(yaw),0.,0.],
+            [0.,0.,1.,0.],
+            [0.,0.,0.,1.]])
+Rt = Matrix([[1.,0.,0.,p_x],
+            [0.,1.,0.,p_y],
+            [0.,0.,1.,p_z],
+            [0.,0.,0.,1.]])
+Rhom = Rt*Rz*Ry*Rx*Rcorr
+print('Homogeneous {}'.format(simplify(Rhom)))
+```
 
-The demo ends when the robot arm reaches at the top of the drop location. 
+### Inverse Kinematics
 
-There is no loopback implemented yet, so you need to close all the terminal windows in order to restart.
+The inverse kinematics problem is decomposed into position and orientation of the *wrist* consisting of joints 4, 5, and 6, and located at joint 5.  Computing inverse kinematics results in the six joint angles that place the *end effector* at a specified position and orientation.
 
-In case the demo fails, close all three terminal windows and rerun the script.
+## Implementation
 

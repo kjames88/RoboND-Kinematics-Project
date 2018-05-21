@@ -89,6 +89,29 @@ Ry = Matrix([[cos(-pi/2), 0, sin(-pi/2), 0],
 Rcorr = (Rz * Ry)
 T_all = (T0_G * Rcorr)
 
+#Homogeneous RPY and Position transform
+p_x,p_y,p_z = symbols('p_x p_y p_z')
+roll,pitch,yaw = symbols('roll pitch yaw')
+
+Rx = Matrix([[1.,0.,0.,0.],
+            [0.,cos(roll),-sin(roll),0.],
+            [0.,sin(roll),cos(roll),0.],
+            [0.,0.,0.,1.]])
+Ry = Matrix([[cos(pitch),0.,sin(pitch),0.],
+            [0.,1.,0.,0.],
+            [-sin(pitch),0.,cos(pitch),0.],
+            [0.,0.,0.,1.]])
+Rz = Matrix([[cos(yaw),-sin(yaw),0.,0.],
+            [sin(yaw),cos(yaw),0.,0.],
+            [0.,0.,1.,0.],
+            [0.,0.,0.,1.]])
+Rt = Matrix([[1.,0.,0.,p_x],
+            [0.,1.,0.,p_y],
+            [0.,0.,1.,p_z],
+            [0.,0.,0.,1.]])
+Rhom = Rt*Rz*Ry*Rx*Rcorr
+print('Homogeneous {}'.format(simplify(Rhom)))
+
 #print('eval T0_1 = {}'.format(T0_1.evalf(subs={theta1:0.09})))
 #print ('eval T_all = {}'.format(T_all.evalf(subs={})))
 
@@ -121,6 +144,9 @@ print('translation from pos to gripper: {}'.format(t.evalf(subs=ts)))
 px = T_all[0,3].evalf(subs=ts)
 py = T_all[1,3].evalf(subs=ts)
 pz = T_all[2,3].evalf(subs=ts)
+
+print('T_all {}'.format((T_all*pos).evalf(subs=ts)))
+print('Rhom  {}'.format((Rhom*pos).evalf(subs={roll:gamma,pitch:beta,yaw:alpha,p_x:px,p_y:py,p_z:pz})))
 
 #nx = T_all[0,2].evalf(subs=ts)
 #ny = T_all[1,2].evalf(subs=ts)
