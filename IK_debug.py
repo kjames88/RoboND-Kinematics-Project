@@ -198,15 +198,15 @@ def test_code(test_case):
     #R0_1 = T0_1[0:3,0:3]
     #R1_2 = T1_2[0:3,0:3]
     #R2_3 = T2_3[0:3,0:3]
-    #R3_4 = T3_4[0:3,0:3]
-    #R4_5 = T4_5[0:3,0:3]
-    #R5_6 = T5_6[0:3,0:3]
+    R3_4 = T3_4[0:3,0:3]
+    R4_5 = T4_5[0:3,0:3]
+    R5_6 = T5_6[0:3,0:3]
     #R0_3_sym = R0_1*R1_2*R2_3
-    #R3_6_sym = R3_4*R4_5*R5_6
+    R3_6_sym = R3_4*R4_5*R5_6
 
-    #print('R3_6_sym[0] = {}'.format(R3_6_sym[0,:]))
-    #print('R3_6_sym[1] = {}'.format(R3_6_sym[1,:]))
-    #print('R3_6_sym[2] = {}'.format(R3_6_sym[2,:]))
+    print('R3_6_sym[0] = {}'.format(R3_6_sym[0,:]))
+    print('R3_6_sym[1] = {}'.format(R3_6_sym[1,:]))
+    print('R3_6_sym[2] = {}'.format(R3_6_sym[2,:]))
 
     lv = 0.303
     d6v = 0.0

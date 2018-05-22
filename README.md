@@ -18,10 +18,11 @@ The angles are generally inferred from the arm structure.  *Alpha1* is the angle
 | 5->6 | -pi/2 | 0 | 0 |   |
 | 6->EE | 0 |0 | 0.303 | 0 |
 
+# ADD FIGURE
 
 ### Transforms
 
-DH transforms below are in sympy symbolic format with a substitution of the above table after each matrix is defined.  Joint rotations thetaK are shown as qK.
+DH transforms below are in sympy symbolic format with a substitution of the above table after each matrix is defined.  Joint rotations thetaK are shown as qK.  Individual transform matrices are obtained as per the lesson (Forward Kinematics (17)).
 
 ```
 T0_1 = Matrix([[cos(q1), -sin(q1), 0, a0],
@@ -114,7 +115,32 @@ print('Homogeneous {}'.format(simplify(Rhom)))
 
 ### Inverse Kinematics
 
-The inverse kinematics problem is decomposed into position and orientation of the *wrist* consisting of joints 4, 5, and 6, and located at joint 5.  Computing inverse kinematics results in the six joint angles that place the *end effector* at a specified position and orientation.
+The inverse kinematics problem is decomposed into position and orientation of the *wrist* consisting of joints 4, 5, and 6, and located at joint 5.  Computing inverse kinematics results in the six joint angles that place the *end effector* at a specified position and orientation.  Notes show the derivation for *theta1*, *theta2*, and *theta3* implemented in the following code.
+
+```
+A = np.sqrt(s[a3]**2 + s[d4]**2)
+B = np.sqrt((np.sqrt(wx**2 + wy**2) - s[a1])**2 + dz**2)
+C = s[a2]
+v = (A**2 + C**2 - B**2) / (2.0*A*C)
+b = np.arccos(v)
+# angle adjust component due to a3 (sag in link 4 from project walkthrough)
+a_sag = np.arctan2(s[a3], s[d4])
+theta3v = (np.pi/2. - b) + a_sag
+theta3v = normalize(theta3v)
+v = (B**2 + C**2 - A**2) / (2.0*B*C)
+a = np.arccos(v)
+dxy = np.sqrt(dx**2 + dy**2)
+angle = np.arctan2(dz,dxy)
+theta2v = np.pi/2. - angle - a
+theta2v = normalize(theta2v)
+```
+
+```
+R3_6_sym[0] = Matrix([[-sin(q4)*sin(q6) + cos(q4)*cos(q5)*cos(q6), -sin(q4)*cos(q6) - sin(q6)*cos(q4)*cos(q5), -sin(q5)*cos(q4)]])
+R3_6_sym[1] = Matrix([[sin(q5)*cos(q6), -sin(q5)*sin(q6), cos(q5)]])
+R3_6_sym[2] = Matrix([[-sin(q4)*cos(q5)*cos(q6) - sin(q6)*cos(q4), sin(q4)*sin(q6)*cos(q5) - cos(q4)*cos(q6), sin(q4)*sin(q5)]])
+```
+Using the atan2 technique from Euler Angles from a Rotation Matrix, *theta4* = atan2(R3_6[2,2],-R3_6[0,2]), *theta5* = atan2(sqrt(pow(R3_6[0,2],2) + pow(R3_6[2,2],2), R3_6[1,2]), *theta6* = atan2(-R3_6[1,1],R3_6[1,0]).
 
 ## Implementation
 
