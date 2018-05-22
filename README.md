@@ -140,7 +140,8 @@ R3_6_sym[0] = Matrix([[-sin(q4)*sin(q6) + cos(q4)*cos(q5)*cos(q6), -sin(q4)*cos(
 R3_6_sym[1] = Matrix([[sin(q5)*cos(q6), -sin(q5)*sin(q6), cos(q5)]])
 R3_6_sym[2] = Matrix([[-sin(q4)*cos(q5)*cos(q6) - sin(q6)*cos(q4), sin(q4)*sin(q6)*cos(q5) - cos(q4)*cos(q6), sin(q4)*sin(q5)]])
 ```
-Using the atan2 technique from Euler Angles from a Rotation Matrix, *theta4* = atan2(R3_6[2,2],-R3_6[0,2]), *theta5* = atan2(sqrt(pow(R3_6[0,2],2) + pow(R3_6[2,2],2), R3_6[1,2]), *theta6* = atan2(-R3_6[1,1],R3_6[1,0]).
+
+Using the atan2 technique from Euler Angles from a Rotation Matrix, *theta4* = atan2(R3_6[2,2],-R3_6[0,2]), *theta5* = atan2(sqrt(pow(R3_6[0,2],2) + pow(R3_6[2,2],2), R3_6[1,2]), *theta6* = atan2(-R3_6[1,1],R3_6[1,0]).  To avoid flipping quadrants on *theta4* and *theta6* as *theta5* moves near zero, we can conditionally negate the terms in atan2 to maintain the assumed negative sin quardrant for *theta4* and negative cos quadrant for *theta6*.  That is, observing the minus signs in the equations, these quadrants appear intuitive but the signs actually flip when *theta5* is negative.  (*Extrapolated from a hint on slack channel*)
 
 ## Implementation
 
