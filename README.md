@@ -71,7 +71,9 @@ T6_G = T6_G.subs(s)
 The following is a transform matrix from the base link to the gripper using orientation (roll, pitch, yaw) and position (p_x,p_y,p_z) of the gripper.  As for the lesson, the gripper orientation is corrected by rotating about z 180 degrees and about y -90 degrees.
 
 ```
-Matrix([[1.0*sin(pitch)*cos(roll)*cos(yaw) + 1.0*sin(roll)*sin(yaw), -1.0*sin(pitch)*sin(roll)*cos(yaw) + 1.0*sin(yaw)*cos(roll), 1.0*cos(pitch)*cos(yaw), 1.0*p_x], [1.0*sin(pitch)*sin(yaw)*cos(roll) - 1.0*sin(roll)*cos(yaw), -1.0*sin(pitch)*sin(roll)*sin(yaw) - 1.0*cos(roll)*cos(yaw), 1.0*sin(yaw)*cos(pitch), 1.0*p_y], [1.0*cos(pitch)*cos(roll), -1.0*sin(roll)*cos(pitch), -1.0*sin(pitch), 1.0*p_z], [0, 0, 0, 1.00000000000000]])
+Matrix([[1.0*sin(pitch)*cos(roll)*cos(yaw) + 1.0*sin(roll)*sin(yaw), -1.0*sin(pitch)*sin(roll)*cos(yaw) + 1.0*sin(yaw)*cos(roll), 1.0*cos(pitch)*cos(yaw), 1.0*p_x],
+        [1.0*sin(pitch)*sin(yaw)*cos(roll) - 1.0*sin(roll)*cos(yaw), -1.0*sin(pitch)*sin(roll)*sin(yaw) - 1.0*cos(roll)*cos(yaw), 1.0*sin(yaw)*cos(pitch), 1.0*p_y],
+        [1.0*cos(pitch)*cos(roll), -1.0*sin(roll)*cos(pitch), -1.0*sin(pitch), 1.0*p_z], [0, 0, 0, 1.00000000000000]])
 ```
 
 To generate this matrix I used the following sympy code:
@@ -115,7 +117,7 @@ print('Homogeneous {}'.format(simplify(Rhom)))
 
 ### Inverse Kinematics
 
-The inverse kinematics problem is decomposed into position and orientation of the *wrist* consisting of joints 4, 5, and 6, and located at joint 5.  Computing inverse kinematics results in the six joint angles that place the *end effector* at a specified position and orientation.  Notes show the derivation for *theta1*, *theta2*, and *theta3* implemented in the following code.
+The inverse kinematics problem is decomposed into position and orientation of the *wrist* consisting of joints 4, 5, and 6, and located at joint 5.  Computing inverse kinematics results in the six joint angles that place the *end effector* at a specified position and orientation.  Notes show the derivation for *theta1*, *theta2*, and *theta3* implemented in the following code.  These three angles set the *position* of the wrist, and *theta4*, *theta5*, and *theta6* set its *orientation*.
 
 ```
 A = np.sqrt(s[a3]**2 + s[d4]**2)
@@ -158,7 +160,16 @@ else:
 
 ## Implementation
 
-Code implementation follows the detail above.  Additionally, from the lectures there is the process of computing Rrpy using the end effector orientation.  *nx*, *ny*, *nz* from this matrix column 2 are used to project back to the wrist center, after which *theta1*, *theta2* and *theta3*, can be computed and R0_3 determined.  At this point, R3_6 = inv(R0_3) * Rrpy since R0_6 = Rrpy.  I experienced a lot of trouble with the 'LU' mode for computing the inverse.  Using 'LU' I found that inv(inv(R0_3)) did not return R0_3, whereas omitting 'LU' worked as expected.
+Code implementation follows the detail above.  Additionally, from the lectures there is the process of computing Rrpy using the end effector orientation.  *nx*, *ny*, *nz* from this matrix column 2 are used to project back from the pose position (*px*, *py*, *pz*) to the wrist center, after which *theta1*, *theta2* and *theta3*, can be computed and R0_3 determined.  At this point, R3_6 = inv(R0_3) * Rrpy since R0_6 = Rrpy.  I experienced a lot of trouble with the 'LU' mode for computing the inverse.  Using 'LU' I found that inv(inv(R0_3)) did not return R0_3, whereas omitting 'LU' worked as expected.
+
+```
+nx = float(Rrpy[0,2])
+ny = float(Rrpy[1,2])
+nz = float(Rrpy[2,2])
+wx = px - ((d6v + lv) * nx)
+wy = py - ((d6v + lv) * ny)
+wz = pz - ((d6v + lv) * nz)
+```
 
 I ran 10 pick and place operations with one failure and one probable near miss.  Operation number 7 was in transit when the rod collided with the shelf unit and was dropped.  Operation number 9 looked like it came close to the same fate but survived.  Images below show the bin with a stack of rods and several more on the bottom.
 
