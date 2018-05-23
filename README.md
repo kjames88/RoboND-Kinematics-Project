@@ -117,7 +117,7 @@ print('Homogeneous {}'.format(simplify(Rhom)))
 
 ### Inverse Kinematics
 
-The inverse kinematics problem is decomposed into position and orientation of the *wrist* consisting of joints 4, 5, and 6, and located at joint 5.  Computing inverse kinematics results in the six joint angles that place the *end effector* at a specified position and orientation.  Notes show the derivation for *theta1*, *theta2*, and *theta3* implemented in the following code.  These three angles set the *position* of the wrist, and *theta4*, *theta5*, and *theta6* set its *orientation*.
+The inverse kinematics problem is decomposed into position and orientation of the *wrist* consisting of joints 4, 5, and 6, and located at joint 5.  Computing inverse kinematics results in the six joint angles that place the *end effector* at a specified position and orientation.  Notes show the derivation for *theta1*, *theta2*, and *theta3* implemented in the following code.  These three angles set the *position* of the wrist, and *theta4*, *theta5*, and *theta6* set the end effector *orientation*.
 
 ```
 A = np.sqrt(s[a3]**2 + s[d4]**2)
