@@ -18,7 +18,7 @@ The angles are generally inferred from the arm structure.  *Alpha1* is the angle
 | 5->6 | -pi/2 | 0 | 0 |   |
 | 6->EE | 0 |0 | 0.303 | 0 |
 
-# ADD FIGURE
+![alt text](misc_images/arm.png "arm drawing")
 
 ### Transforms
 
@@ -135,6 +135,9 @@ theta2v = np.pi/2. - angle - a
 theta2v = normalize(theta2v)
 ```
 
+![alt text](misc_images/draw_theta2.png "theta 2")
+![alt text](misc_images/draw_theta3.png "theta 3")
+
 ```
 R3_6_sym[0] = Matrix([[-sin(q4)*sin(q6) + cos(q4)*cos(q5)*cos(q6), -sin(q4)*cos(q6) - sin(q6)*cos(q4)*cos(q5), -sin(q5)*cos(q4)]])
 R3_6_sym[1] = Matrix([[sin(q5)*cos(q6), -sin(q5)*sin(q6), cos(q5)]])
@@ -142,6 +145,15 @@ R3_6_sym[2] = Matrix([[-sin(q4)*cos(q5)*cos(q6) - sin(q6)*cos(q4), sin(q4)*sin(q
 ```
 
 Using the atan2 technique from Euler Angles from a Rotation Matrix, *theta4* = atan2(R3_6[2,2],-R3_6[0,2]), *theta5* = atan2(sqrt(pow(R3_6[0,2],2) + pow(R3_6[2,2],2), R3_6[1,2]), *theta6* = atan2(-R3_6[1,1],R3_6[1,0]).  To avoid flipping quadrants on *theta4* and *theta6* as *theta5* moves near zero, we can conditionally negate the terms in atan2 to maintain the assumed negative sin quardrant for *theta4* and negative cos quadrant for *theta6*.  That is, observing the minus signs in the equations, these quadrants appear intuitive but the signs actually flip when *theta5* is negative.  (*Extrapolated from a hint on slack channel*)
+
+```
+if np.sin(theta5v) < 0:
+    theta4s = atan2(-R3_6[2,2],R3_6[0,2])
+    theta6s = atan2(R3_6[1,1],-R3_6[1,0])
+else:
+    theta4s = atan2(R3_6[2,2],-R3_6[0,2])
+    theta6s = atan2(-R3_6[1,1],R3_6[1,0])
+```
 
 ## Implementation
 

@@ -261,14 +261,19 @@ def handle_calculate_IK(req):
             R3_6 = R0_3.inv()*Rrpy  # LU causes significant error
 
             # per the project walkthrough, use the arctan2 method rather than arccos and arcsin
-            theta4s = atan2(R3_6[2,2],-R3_6[0,2])
             theta5s = atan2(sqrt(R3_6[0,2]*R3_6[0,2] + R3_6[2,2]*R3_6[2,2]),R3_6[1,2])
-            theta6s = atan2(-R3_6[1,1],R3_6[1,0])
-            theta4v = float(theta4s.evalf())
             theta5v = float(theta5s.evalf())
+            theta5v = normalize(theta5v)
+            # keep the quadrant for theta4,theta6 when sin(theta5) changes from positive to negative
+            if np.sin(theta5v) < 0:
+                theta4s = atan2(-R3_6[2,2],R3_6[0,2])
+                theta6s = atan2(R3_6[1,1],-R3_6[1,0])
+            else:
+                theta4s = atan2(R3_6[2,2],-R3_6[0,2])
+                theta6s = atan2(-R3_6[1,1],R3_6[1,0])
+            theta4v = float(theta4s.evalf())
             theta6v = float(theta6s.evalf())
             theta4v = normalize(theta4v)
-            theta5v = normalize(theta5v)
             theta6v = normalize(theta6v)
 
             rospy.loginfo('theta1 {} theta2 {} theta3 {} theta4 {} theta5 {} theta6 {}'. \
