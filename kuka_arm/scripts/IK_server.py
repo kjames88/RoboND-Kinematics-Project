@@ -27,6 +27,7 @@ def limit(sin_cos_val):
         return 1.0
     return sin_cos_val
 
+# normalize angles to -pi..pi
 def normalize(rad):
     while rad > np.pi:
         rad -= (2.*np.pi)
@@ -58,6 +59,7 @@ def handle_calculate_IK(req):
 
         # DH parameters
         #   symbol dictionary
+        #   Derived from values in kr210.urdf.xacro
         s = {alpha0:     0, a0:      0, d1:  0.75,
              alpha1: -pi/2, a1:   0.35, d2:     0, q2: q2-pi/2,
              alpha2:     0, a2:   1.25, d3:     0,
@@ -68,7 +70,7 @@ def handle_calculate_IK(req):
 
 	# Define Modified DH Transformation matrix
 	#
-	#
+	# DH transforms per joint as specified in Forward Kinematics lesson
 
         T0_1 = Matrix([[cos(q1), -sin(q1), 0, a0],
                        [sin(q1) * cos(alpha0), cos(q1) * cos(alpha0), -sin(alpha0), -sin(alpha0) * d1],
@@ -149,7 +151,7 @@ def handle_calculate_IK(req):
         R3_4 = T3_4[0:3,0:3]
         R4_5 = T4_5[0:3,0:3]
         R5_6 = T5_6[0:3,0:3]
-        R0_3 = R0_1*R1_2*R2_3
+        #R0_3 = R0_1*R1_2*R2_3
         R3_6_sym = R3_4*R4_5*R5_6
 
         #print('R3_6_sym = {}'.format(R3_6_sym))
@@ -241,7 +243,7 @@ def handle_calculate_IK(req):
             b = np.arccos(v)
             # angle adjust component due to a3 (sag in link 4 from project walkthrough)
             a_sag = np.arctan2(s[a3], s[d4])
-            theta3v = (np.pi/2. - b) + a_sag
+            theta3v = (np.pi/2. - b) + a_sag  # a_sag is negative due to a3 so add instead of subtracting
             theta3v = normalize(theta3v)
 
             #print('theta3v = {}'.format(theta3v))

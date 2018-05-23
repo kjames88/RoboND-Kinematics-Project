@@ -135,8 +135,9 @@ theta2v = np.pi/2. - angle - a
 theta2v = normalize(theta2v)
 ```
 
-![alt text](misc_images/draw_theta2.png "theta 2")
-![alt text](misc_images/draw_theta3.png "theta 3")
+![alt text](misc_images/draw_theta1.jpg "theta1")
+![alt text](misc_images/draw_theta2.png "theta2")
+![alt text](misc_images/draw_theta3.png "theta3")
 
 ```
 R3_6_sym[0] = Matrix([[-sin(q4)*sin(q6) + cos(q4)*cos(q5)*cos(q6), -sin(q4)*cos(q6) - sin(q6)*cos(q4)*cos(q5), -sin(q5)*cos(q4)]])
@@ -157,3 +158,10 @@ else:
 
 ## Implementation
 
+Code implementation follows the detail above.  Additionally, from the lectures there is the process of computing Rrpy using the end effector orientation.  *nx*, *ny*, *nz* from this matrix column 2 are used to project back to the wrist center, after which *theta1*, *theta2* and *theta3*, can be computed and R0_3 determined.  At this point, R3_6 = inv(R0_3) * Rrpy since R0_6 = Rrpy.  I experienced a lot of trouble with the 'LU' mode for computing the inverse.  Using 'LU' I found that inv(inv(R0_3)) did not return R0_3, whereas omitting 'LU' worked as expected.
+
+I ran 10 pick and place operations with one failure and one probable near miss.  Operation number 7 was in transit when the rod collided with the shelf unit and was dropped.  Operation number 9 looked like it came close to the same fate but survived.  Images below show the bin with a stack of rods and several more on the bottom.
+
+![alt text](misc_images/failed_number_7.jpg "one collides with shelf")
+![alt text](misc_images/final_9_10.jpg "final view with 9/10 successful")
+![alt text](misc_images/final_top.jpg "final view from above")
